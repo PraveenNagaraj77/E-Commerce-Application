@@ -15,7 +15,7 @@ import ShoppingCheckout from "./pages/shoppingview/checkout";
 import ShoppingAccount from "./pages/shoppingview/account";
 import ShoppingList from "./pages/shoppingview/listing";
 import ShoppingPayment from "./pages/shoppingview/ShoppingPayment"; 
-import MyOrders from "./pages/shoppingview/myorders"; 
+import MyOrders from "./pages/shoppingview/MyOrders"; 
 import CheckAuth from "./components/common/CheckAuth";
 import UnAuthPage from "./pages/UnAuthPage/UnAuthPage";
 import { useDispatch, useSelector } from "react-redux";
