@@ -1,0 +1,22 @@
+# Node modules
+client/node_modules
+server/node_modules
+
+# Environment files
+client/.env
+server/.env
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Vercel or Render specific
+.vercel
+.render
+
+# Other optional directories to ignore
+client/build
+server/dist
