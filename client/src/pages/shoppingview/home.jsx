@@ -182,16 +182,14 @@ const ShoppingHome = () => {
   <div className="container mx-auto px-4">
     <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Featured Products</h2>
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {productList && productList.length > 0
-        ? productList.map((productItem) => (
-            <ShoppingProductTile
-              key={productItem.id}
-              product={productItem}
-              handleGetProductDetails={handleGetProductDetails}
-              handleAddtoCart={handleAddtoCart}
-            />
-          ))
-        : null}
+    {productList.map((productItem, index) => (
+  <ShoppingProductTile
+    key={productItem.id || index}
+    product={productItem}
+    handleGetProductDetails={handleGetProductDetails}
+    handleAddtoCart={handleAddtoCart}
+  />
+))}
     </div>
   </div>
 </section>

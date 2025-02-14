@@ -1,4 +1,11 @@
-import { HousePlug, LogOut, Menu, ShoppingCart, UserCog, List } from "lucide-react";
+import {
+  HousePlug,
+  LogOut,
+  Menu,
+  ShoppingCart,
+  UserCog,
+  List,
+} from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "../ui/sheet";
@@ -19,6 +26,7 @@ import { logoutUser } from "@/store/authslice";
 import UsercartWrapper from "./cartWrapper";
 import { fetchCart } from "@/store/shop/cartSlice";
 import { Label } from "../ui/label";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 function MenuItems() {
   const navigate = useNavigate();
@@ -81,7 +89,9 @@ function HeaderRightContent() {
       <Button
         variant="outline"
         size="icon"
-        onClick={() => (isAuthenticated ? setOpenCart(true) : navigate("/auth/login"))}
+        onClick={() =>
+          isAuthenticated ? setOpenCart(true) : navigate("/auth/login")
+        }
         className="relative"
       >
         <ShoppingCart className="h-6 w-6" />
@@ -130,8 +140,21 @@ function HeaderRightContent() {
 
       {/* Cart Modal */}
       <Sheet open={openCart} onOpenChange={setOpenCart}>
-        <SheetContent>
-          <UsercartWrapper cartItems={cartItems} onClose={() => setOpenCart(false)} />
+        <SheetContent aria-describedby="cart-description">
+          {/* ✅ Hidden Title for Accessibility */}
+          <VisuallyHidden>
+            <SheetTitle>Shopping Cart</SheetTitle>
+          </VisuallyHidden>
+
+          {/* ✅ Add Description to Fix `aria-describedby` Warning */}
+          <p id="cart-description" className="sr-only">
+            This is your shopping cart. Review and manage your selected items.
+          </p>
+
+          <UsercartWrapper
+            cartItems={cartItems}
+            onClose={() => setOpenCart(false)}
+          />
         </SheetContent>
       </Sheet>
     </div>

@@ -21,33 +21,32 @@ mongoose
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ Apply CORS Middleware Properly
-app.use(
-  cors({
-    origin: "https://ecommerce-shopbypraveen.onrender.com", // ✅ Use exact deployed frontend URL
-    methods: ["GET", "POST", "DELETE", "PUT", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "Cache-Control",
-      "Expires",
-      "Pragma",
-    ],
-    credentials: true, // ✅ Required for cookies/sessions
-  })
-);
-
-// ✅ Handle Preflight Requests Properly
-app.options("*", (req, res) => {
-  res.header("Access-Control-Allow-Origin", "https://ecommerce-shopbypraveen.onrender.com");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, Cache-Control, Expires, Pragma"
+const allowedOrigins = [
+    "https://ecommerce-shopbypraveen.onrender.com", // Production URL
+    "http://localhost:5173", // Local Development
+  ];
+  
+  app.use(
+    cors({
+      origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "Cache-Control", // ✅ Added Cache-Control
+      ],
+      credentials: true, // ✅ Allows cookies & authentication headers
+    })
   );
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.sendStatus(200);
-});
+  
+// ✅ Ensure Express Trusts Proxy for Deployment
+app.set("trust proxy", 1);
 
 // ✅ Debug Incoming Requests
 app.use((req, res, next) => {

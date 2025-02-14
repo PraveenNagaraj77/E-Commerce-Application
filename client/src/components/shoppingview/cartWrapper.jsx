@@ -4,30 +4,29 @@ import { SheetContent, SheetHeader, SheetTitle } from '../ui/sheet';
 import { Button } from '../ui/button';
 import UsercartItemsContent from './cartItemsContent';
 
-const UsercartWrapper = ({ cartItems = [], onClose }) => { // ✅ Added onClose prop
+const UsercartWrapper = ({ cartItems = [], onClose }) => { 
   const [totalPrice, setTotalPrice] = useState(0);
-  const navigate = useNavigate(); // ✅ Initialize navigate function
+  const navigate = useNavigate();
+
+  // ✅ Ensure cartItems is always an array
+  const cartItemsArray = Array.isArray(cartItems) ? cartItems : [];
 
   useEffect(() => {
-    if (!Array.isArray(cartItems) || cartItems.length === 0) {
+    if (!cartItemsArray.length) {
       setTotalPrice(0);
       return;
     }
 
-    const newTotal = cartItems.reduce((sum, item) => {
-      const itemTotal = (item.price || 0) * (item.quantity || 0);
-      return sum + itemTotal;
+    const newTotal = cartItemsArray.reduce((sum, item) => {
+      return sum + (item.price || 0) * (item.quantity || 1);
     }, 0);
 
-    setTotalPrice(newTotal);
-  }, [cartItems]);
+    setTotalPrice(parseFloat(newTotal.toFixed(2))); // ✅ Fix floating point issue
+  }, [cartItemsArray]);
 
-  // ✅ Close sheet & Navigate to Checkout
+  // ✅ Close cart & navigate to checkout
   const handleCheckout = () => {
-    if (onClose) {
-      console.log("Closing cart sheet..."); // ✅ Debug log
-      onClose(); // ✅ Close the sheet
-    }
+    if (onClose) onClose(); // ✅ Close the sheet
     navigate('/shop/account');
   };
 
@@ -38,8 +37,10 @@ const UsercartWrapper = ({ cartItems = [], onClose }) => { // ✅ Added onClose 
       </SheetHeader>
 
       <div className="mt-8 space-y-4">
-        {cartItems.length > 0 ? (
-          cartItems.map((item) => <UsercartItemsContent key={item.productId} cartItem={item} />)
+        {cartItemsArray.length ? (
+          cartItemsArray.map((item) => (
+            <UsercartItemsContent key={item.productId} cartItem={item} onClose={onClose} />
+          ))
         ) : (
           <p className="text-gray-500 text-center">Your cart is empty</p>
         )}
@@ -48,11 +49,10 @@ const UsercartWrapper = ({ cartItems = [], onClose }) => { // ✅ Added onClose 
       <div className="mt-8 space-y-4">
         <div className="flex justify-between">
           <span className="font-bold">Total Amount</span>
-          <span className="font-bold">${totalPrice.toFixed(2)}</span>
+          <span className="font-bold">${totalPrice}</span>
         </div>
       </div>
 
-      {/* ✅ Checkout Button with Navigation & Close Sheet */}
       <Button className="w-full mt-6" onClick={handleCheckout}>
         CheckOut
       </Button>

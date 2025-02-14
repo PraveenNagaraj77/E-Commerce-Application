@@ -12,9 +12,9 @@ const UsercartItemsContent = ({ cartItem, userId }) => {
   const { toast } = useToast();
   const dispatch = useDispatch();
   const currentUser = useSelector((state) => state.auth.user);
-  
-  // Ensure Redux store updates trigger UI changes
-  const cartItems = useSelector((state) => state.cart.cartItems, (prev, next) => JSON.stringify(prev) === JSON.stringify(next)) || [];
+
+  // Select cart items from Redux store
+  const cartItems = useSelector((state) => state.cart.cartItems) || [];
 
   const finalUserId = userId || currentUser?.id;
 
@@ -25,8 +25,9 @@ const UsercartItemsContent = ({ cartItem, userId }) => {
     }
   }, [dispatch, finalUserId]);
 
-  // Memoize cart item selection
+  // Get the updated cart item
   const updatedCartItem = useMemo(() => {
+    if (cartItems.length === 0) return cartItem; // Avoid selecting from empty array
     return cartItems.find((item) => item.productId === cartItem?.productId) || cartItem;
   }, [cartItems, cartItem]);
 
@@ -44,20 +45,34 @@ const UsercartItemsContent = ({ cartItem, userId }) => {
   // Handle quantity update
   const handleQuantityChange = (newQuantity) => {
     if (newQuantity < 1) return;
-    dispatch(updateCartItemQuantity({ userId: finalUserId, productId: updatedCartItem.productId, quantity: newQuantity }));
+    dispatch(
+      updateCartItemQuantity({
+        userId: finalUserId,
+        productId: updatedCartItem.productId,
+        quantity: newQuantity,
+      })
+    );
   };
 
   // Handle deletion
   const handleDelete = () => {
     dispatch(deleteCartItem({ userId: finalUserId, productId: updatedCartItem.productId }));
-    toast({ title: "Item removed from cart", status: "success" });
+    toast({
+      title: "Item removed from cart",
+      description: "The product has been successfully removed.",
+      status: "success",
+    });
   };
 
   return (
     <div className="flex items-center justify-between border-b p-4">
       {/* Product Image */}
       <div className="w-16 h-16 overflow-hidden rounded-md">
-        <img src={updatedCartItem?.image } alt={updatedCartItem?.title || "Product Image"} className="w-full h-full object-cover" />
+        <img
+          src={updatedCartItem?.image || "/placeholder.jpg"}
+          alt={updatedCartItem?.title || "Product Image"}
+          className="w-full h-full object-cover"
+        />
       </div>
 
       {/* Product Details */}
@@ -68,15 +83,28 @@ const UsercartItemsContent = ({ cartItem, userId }) => {
 
       {/* Quantity Controls */}
       <div className="flex items-center space-x-3">
-        <button onClick={() => handleQuantityChange(quantity - 1)} disabled={quantity <= 1} className="p-2 border rounded">-</button>
+        <button
+          onClick={() => handleQuantityChange(quantity - 1)}
+          disabled={quantity <= 1}
+          className="p-2 border rounded"
+        >
+          -
+        </button>
         <span className="font-bold">{quantity}</span>
-        <button onClick={() => handleQuantityChange(quantity + 1)} className="p-2 border rounded">+</button>
+        <button
+          onClick={() => handleQuantityChange(quantity + 1)}
+          className="p-2 border rounded"
+        >
+          +
+        </button>
       </div>
 
       {/* Total Price & Delete Button */}
       <div className="flex items-center space-x-4 ml-2">
         <span className="font-bold">${totalPrice}</span>
-        <button onClick={handleDelete} className="text-red-500"><Trash size={20} /></button>
+        <button onClick={handleDelete} className="text-red-500">
+          <Trash size={20} />
+        </button>
       </div>
     </div>
   );
