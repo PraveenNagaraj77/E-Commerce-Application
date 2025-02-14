@@ -21,43 +21,60 @@ mongoose
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// ✅ Allowed Origins (Frontend & Local Development)
 const allowedOrigins = [
-    "https://ecommerce-shopbypraveen.onrender.com", // Production URL
-    "http://localhost:5173", // Local Development
-  ];
-  
-  app.use(
-    cors({
-      origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(new Error("Not allowed by CORS"));
-        }
-      },
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: [
-        "Content-Type",
-        "Authorization",
-        "Cache-Control", // ✅ Added Cache-Control
-      ],
-      credentials: true, // ✅ Allows cookies & authentication headers
-    })
-  );
-  
-// ✅ Ensure Express Trusts Proxy for Deployment
+  "https://ecommerce-shopbypraveen.onrender.com", // Production URL
+  "http://localhost:5173", // Local Development
+];
+
+// ✅ CORS Middleware
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cache-Control"],
+    credentials: true, // ✅ Allows Cookies & Authentication Headers
+  })
+);
+
+// ✅ Handle Preflight Requests for All Routes
+app.options("*", (req, res) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Cache-Control");
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.sendStatus(200);
+});
+
+// ✅ Trust Proxy (Required for Render Deployment)
 app.set("trust proxy", 1);
 
 // ✅ Debug Incoming Requests
 app.use((req, res, next) => {
-  console.log(`Incoming Request: ${req.method} ${req.url}`);
-  console.log("Headers:", req.headers);
+  console.log(`📌 Incoming Request: ${req.method} ${req.url}`);
+  console.log("📌 Origin:", req.headers.origin);
+  console.log("📌 Headers:", req.headers);
   next();
 });
 
 // Middleware
 app.use(cookieParser());
 app.use(express.json());
+
+// ✅ Explicitly Set CORS Headers in Every Response
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Cache-Control");
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+});
 
 // Routes
 app.use("/api/auth", authRouter);
