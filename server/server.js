@@ -12,7 +12,7 @@ const shopAddressRouter = require("./routes/Shop/addressRoutes");
 const shopOrderRouter = require("./routes/Shop/orderRoutes");
 const paypalRouter = require("./routes/Shop/paypalRoutes");
 
-// Connect to Database
+// Connect to MongoDB
 mongoose
   .connect("mongodb+srv://praveennagaraj76:praveenPR76@cluster0.zhyrm.mongodb.net/")
   .then(() => console.log("✅ MongoDB Connected"))
@@ -21,14 +21,11 @@ mongoose
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ Apply CORS Middleware **Before Routes**
+// ✅ Apply CORS Middleware Properly
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173", // Local frontend
-      "https://ecommerce-shopbypraveen.onrender.com", // Deployed frontend
-    ],
-    methods: ["GET", "POST", "DELETE", "PUT"],
+    origin: "https://ecommerce-shopbypraveen.onrender.com", // ✅ Use exact deployed frontend URL
+    methods: ["GET", "POST", "DELETE", "PUT", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
       "Authorization",
@@ -36,11 +33,23 @@ app.use(
       "Expires",
       "Pragma",
     ],
-    credentials: true,
+    credentials: true, // ✅ Required for cookies/sessions
   })
 );
 
-// ✅ Debugging: Log incoming requests to check headers
+// ✅ Handle Preflight Requests Properly
+app.options("*", (req, res) => {
+  res.header("Access-Control-Allow-Origin", "https://ecommerce-shopbypraveen.onrender.com");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, Cache-Control, Expires, Pragma"
+  );
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.sendStatus(200);
+});
+
+// ✅ Debug Incoming Requests
 app.use((req, res, next) => {
   console.log(`Incoming Request: ${req.method} ${req.url}`);
   console.log("Headers:", req.headers);
@@ -61,4 +70,4 @@ app.use("/api/shop/orders", shopOrderRouter);
 app.use("/api/shop/paypal", paypalRouter);
 
 // Start Server
-app.listen(PORT, () => console.log(`🚀 Server is Running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server Running on http://localhost:${PORT}`));
