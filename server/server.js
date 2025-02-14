@@ -21,9 +21,9 @@ mongoose
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ Allowed Origins (Frontend & Local Development)
+// ✅ Allowed Origins (Corrected Frontend URL)
 const allowedOrigins = [
-  "https://ecommerce-shopbypraveen.onrender.com", // Production URL
+  "https://e-commercebypraveen.onrender.com", // ✅ Correct frontend origin
   "http://localhost:5173", // Local Development
 ];
 
@@ -43,9 +43,12 @@ app.use(
   })
 );
 
-// ✅ Handle Preflight Requests for All Routes
+// ✅ Handle Preflight Requests Properly
 app.options("*", (req, res) => {
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Cache-Control");
   res.header("Access-Control-Allow-Credentials", "true");
@@ -69,13 +72,17 @@ app.use(express.json());
 
 // ✅ Explicitly Set CORS Headers in Every Response
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Cache-Control");
   res.header("Access-Control-Allow-Credentials", "true");
   next();
 });
 
+// Test Route
 app.get("/", (req, res) => {
   res.send("<h1>🚀 Server is Running!</h1>");
 });
