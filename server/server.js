@@ -76,6 +76,10 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get("/", (req, res) => {
+  res.send("<h1>🚀 Server is Running!</h1>");
+});
+
 // Routes
 app.use("/api/auth", authRouter);
 app.use("/api/admin/products", adminProductsRouter);
