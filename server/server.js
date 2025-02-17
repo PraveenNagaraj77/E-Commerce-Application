@@ -31,6 +31,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -42,18 +43,6 @@ app.use(
     credentials: true, // ✅ Allows Cookies & Authentication Headers
   })
 );
-
-// ✅ Handle Preflight Requests Properly
-app.options("*", (req, res) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-  }
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Cache-Control");
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.sendStatus(200);
-});
 
 // ✅ Trust Proxy (Required for Render Deployment)
 app.set("trust proxy", 1);
@@ -69,18 +58,6 @@ app.use((req, res, next) => {
 // Middleware
 app.use(cookieParser());
 app.use(express.json());
-
-// ✅ Explicitly Set CORS Headers in Every Response
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-  }
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Cache-Control");
-  res.header("Access-Control-Allow-Credentials", "true");
-  next();
-});
 
 // Test Route
 app.get("/", (req, res) => {
