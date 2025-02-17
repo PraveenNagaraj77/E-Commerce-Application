@@ -31,25 +31,31 @@ function App() {
     dispatch(checkAuth());
   }, [dispatch]);
 
-  if (isLoading) return <Skeleton className="w-[800px] bg-black h-[600px]" />;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black fixed top-0 left-0 w-full h-full z-50">
+        <Skeleton className="w-full h-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col overflow-hidden bg-white">
       <Routes>
-        {/* ✅ Default Route - Publicly Accessible */}
+        {/* ✅ Default Route - Redirect to Home */}
         <Route path="/" element={<Navigate to="/shop/home" />} />
 
-        {/* ✅ Public Routes (No Authentication Required) */}
+        {/* ✅ Public Shopping Routes */}
         <Route path="/shop/*" element={<ShoppingLayout />}>
-          <Route path="home" element={<ShoppingHome />} /> {/* ✅ Home Page is Public */}
-          <Route path="listing" element={<ShoppingList />} /> {/* ✅ Product Listing is Public */}
+          <Route path="home" element={<ShoppingHome />} />
+          <Route path="listing" element={<ShoppingList />} />
         </Route>
 
         {/* 🔒 Protected Shopping Routes (Requires Login) */}
         <Route
           path="/shop/*"
           element={
-            <CheckAuth isAuthenticated={isAuthenticated} user={user}>
+            <CheckAuth isAuthenticated={isAuthenticated}>
               <ShoppingLayout />
             </CheckAuth>
           }
@@ -60,24 +66,27 @@ function App() {
           <Route path="myorders" element={<MyOrders />} />
         </Route>
 
-        {/* 🔒 Authentication Routes */}
-        <Route
-          path="/auth"
-          element={
-            <CheckAuth isAuthenticated={isAuthenticated} user={user}>
-              <AuthLayout />
-            </CheckAuth>
-          }
-        >
-          <Route path="login" element={<Authlogin />} />
-          <Route path="register" element={<AuthRegister />} />
+        {/* 🔒 Authentication Routes (Redirect Logged-In Users) */}
+        <Route path="/auth" element={<AuthLayout />}>
+          <Route
+            path="login"
+            element={
+              isAuthenticated ? <Navigate to="/shop/home" /> : <Authlogin />
+            }
+          />
+          <Route
+            path="register"
+            element={
+              isAuthenticated ? <Navigate to="/shop/home" /> : <AuthRegister />
+            }
+          />
         </Route>
 
-        {/* 🔒 Admin Routes */}
+        {/* 🔒 Admin Routes (Only for Admins) */}
         <Route
           path="/admin/*"
           element={
-            <CheckAuth isAuthenticated={isAuthenticated} user={user}>
+            <CheckAuth isAuthenticated={isAuthenticated} user={user} role="admin">
               <AdminLayout />
             </CheckAuth>
           }
@@ -88,7 +97,7 @@ function App() {
           <Route path="products" element={<AdminProducts />} />
         </Route>
 
-        {/* ❌ Not Found Route */}
+        {/* ❌ Not Found & Unauthorized Pages */}
         <Route path="*" element={<NotFound />} />
         <Route path="/unauthPage" element={<UnAuthPage />} />
       </Routes>

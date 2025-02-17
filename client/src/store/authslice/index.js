@@ -5,9 +5,9 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const initialState = {
-    isAuthenticated: false,
+    isAuthenticated: JSON.parse(localStorage.getItem("isAuthenticated")) || false,
     isLoading: true,
-    user: null
+    user: JSON.parse(localStorage.getItem("user")) || null
 };
 
 export const registerUser = createAsyncThunk('/auth/register',
@@ -81,6 +81,12 @@ const authSlice = createSlice({
                 state.isLoading = false;
                 state.user = action.payload.success ? action.payload.user : null;
                 state.isAuthenticated = action.payload.success;
+            
+                // ✅ Store in localStorage
+                if (action.payload.success) {
+                    localStorage.setItem("user", JSON.stringify(action.payload.user));
+                    localStorage.setItem("isAuthenticated", JSON.stringify(true));
+                }
             })
             .addCase(loginUser.rejected, (state) => {
                 state.isLoading = true;
@@ -94,6 +100,15 @@ const authSlice = createSlice({
                 state.isLoading = false;
                 state.user = action.payload.success ? action.payload.user : null;
                 state.isAuthenticated = action.payload.success;
+            
+                // ✅ Store in localStorage
+                if (action.payload.success) {
+                    localStorage.setItem("user", JSON.stringify(action.payload.user));
+                    localStorage.setItem("isAuthenticated", JSON.stringify(true));
+                } else {
+                    localStorage.removeItem("user");
+                    localStorage.removeItem("isAuthenticated");
+                }
             })
             .addCase(checkAuth.rejected, (state) => {
                 state.isLoading = false;
@@ -104,7 +119,11 @@ const authSlice = createSlice({
                 state.isLoading = false;
                 state.user = null;
                 state.isAuthenticated = false;
-            });
+            
+                // ✅ Clear localStorage
+                localStorage.removeItem("user");
+                localStorage.removeItem("isAuthenticated");
+            })
     }
 });
 
