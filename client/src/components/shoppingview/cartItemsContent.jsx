@@ -27,7 +27,6 @@ const UsercartItemsContent = ({ cartItem, userId }) => {
 
   // Get the updated cart item
   const updatedCartItem = useMemo(() => {
-    if (cartItems.length === 0) return cartItem; // Avoid selecting from empty array
     return cartItems.find((item) => item.productId === cartItem?.productId) || cartItem;
   }, [cartItems, cartItem]);
 
@@ -51,7 +50,13 @@ const UsercartItemsContent = ({ cartItem, userId }) => {
         productId: updatedCartItem.productId,
         quantity: newQuantity,
       })
-    );
+    ).then(() => {
+      dispatch(fetchCart(finalUserId)); // Re-fetch cart to get latest updates
+    });
+
+    setTimeout(() => {
+      console.log("✅ Updated Redux Cart State:", useSelector((state) => state.cart.cartItems));
+    }, 500);
   };
 
   // Handle deletion

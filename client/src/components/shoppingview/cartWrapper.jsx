@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // ✅ Import useNavigate
+import { useNavigate } from 'react-router-dom'; 
 import { SheetContent, SheetHeader, SheetTitle } from '../ui/sheet';
 import { Button } from '../ui/button';
 import UsercartItemsContent from './cartItemsContent';
@@ -8,7 +8,7 @@ const UsercartWrapper = ({ cartItems = [], onClose }) => {
   const [totalPrice, setTotalPrice] = useState(0);
   const navigate = useNavigate();
 
-  // ✅ Ensure cartItems is always an array
+  // Ensure cartItems is always an array
   const cartItemsArray = Array.isArray(cartItems) ? cartItems : [];
 
   useEffect(() => {
@@ -21,22 +21,23 @@ const UsercartWrapper = ({ cartItems = [], onClose }) => {
       return sum + (item.price || 0) * (item.quantity || 1);
     }, 0);
 
-    setTotalPrice(parseFloat(newTotal.toFixed(2))); // ✅ Fix floating point issue
+    setTotalPrice(parseFloat(newTotal.toFixed(2))); 
   }, [cartItemsArray]);
 
-  // ✅ Close cart & navigate to checkout
+  // Close cart & navigate to checkout
   const handleCheckout = () => {
-    if (onClose) onClose(); // ✅ Close the sheet
+    if (onClose) onClose();
     navigate('/shop/account');
   };
 
   return (
-    <SheetContent className="sm:max-w-md">
+    <SheetContent className="sm:max-w-md flex flex-col h-full"> 
       <SheetHeader>
         <SheetTitle>Your Cart</SheetTitle>
       </SheetHeader>
 
-      <div className="mt-8 space-y-4">
+      {/* Scrollable product list */}
+      <div className="flex-1 overflow-y-auto mt-4 space-y-4 px-2">
         {cartItemsArray.length ? (
           cartItemsArray.map((item) => (
             <UsercartItemsContent key={item.productId} cartItem={item} onClose={onClose} />
@@ -46,16 +47,16 @@ const UsercartWrapper = ({ cartItems = [], onClose }) => {
         )}
       </div>
 
-      <div className="mt-8 space-y-4">
-        <div className="flex justify-between">
-          <span className="font-bold">Total Amount</span>
-          <span className="font-bold">${totalPrice}</span>
+      {/* Fixed footer section */}
+      <div className="border-t pt-4 bg-white">
+        <div className="flex justify-between text-lg font-semibold px-4">
+          <span>Total Amount</span>
+          <span>${totalPrice}</span>
         </div>
+        <Button className="w-full mt-4 py-3 text-lg font-semibold" onClick={handleCheckout}>
+          Proceed to Checkout
+        </Button>
       </div>
-
-      <Button className="w-full mt-6" onClick={handleCheckout}>
-        CheckOut
-      </Button>
     </SheetContent>
   );
 };

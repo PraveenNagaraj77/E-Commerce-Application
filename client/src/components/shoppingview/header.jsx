@@ -57,7 +57,7 @@ function MenuItems() {
         <Label
           onClick={() => handleNavigate(menuItem)}
           key={menuItem.id || menuItem.label}
-          className="text-sm font-medium cursor-pointer"
+          className="text-sm font-medium cursor-pointer hover:text-primary transition"
         >
           {menuItem.label}
         </Label>
@@ -108,7 +108,7 @@ function HeaderRightContent() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Avatar className="bg-black">
-              <AvatarFallback className="bg-black cursor-pointer text-white font-extrabold">
+              <AvatarFallback className="bg-black cursor-pointer  text-white font-extrabold">
                 {user?.userName ? user.userName[0].toUpperCase() : "?"}
               </AvatarFallback>
             </Avatar>
@@ -167,7 +167,7 @@ const ShoppingHeader = () => {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
-      <div className="flex h-16 items-center justify-between px-4 md:px-6">
+      <div className="flex h-16 items-center  justify-between px-4 md:px-6">
         <Link to={"/shop/home"} className="flex items-center gap-2">
           <HousePlug className="h-6 w-6" />
           <span className="font-bold">E-Commerce</span>
