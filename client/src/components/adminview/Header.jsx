@@ -1,14 +1,19 @@
-import React from 'react';
-import { Button } from '../ui/button';
-import { AlignJustify, LogOut } from 'lucide-react';
-import { useDispatch } from 'react-redux';
-import { logoutUser } from '@/store/authslice';
+import React from "react";
+import { Button } from "../ui/button";
+import { AlignJustify, LogOut } from "lucide-react";
+import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom"; // 🔹 Import for navigation
+import { logoutUser } from "@/store/authslice";
 
 const AdminHeader = ({ setOpen }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate(); // 🔹 Initialize navigate
 
   function handleLogout() {
     dispatch(logoutUser());
+    localStorage.removeItem("token"); 
+    sessionStorage.clear(); 
+    navigate("/", { replace: true });
   }
 
   return (

@@ -51,11 +51,11 @@ function App() {
           <Route path="listing" element={<ShoppingList />} />
         </Route>
 
-        {/* 🔒 Protected Shopping Routes (Requires Login) */}
+        {/* 🔒 Protected Shopping Routes (Users Only) */}
         <Route
           path="/shop/*"
           element={
-            <CheckAuth isAuthenticated={isAuthenticated}>
+            <CheckAuth isAuthenticated={isAuthenticated} user={user}>
               <ShoppingLayout />
             </CheckAuth>
           }
@@ -71,22 +71,30 @@ function App() {
           <Route
             path="login"
             element={
-              isAuthenticated ? <Navigate to="/shop/home" /> : <Authlogin />
+              isAuthenticated ? (
+                user?.role === "admin" ? <Navigate to="/admin/dashboard" replace /> : <Navigate to="/shop/home" replace />
+              ) : (
+                <Authlogin />
+              )
             }
           />
           <Route
             path="register"
             element={
-              isAuthenticated ? <Navigate to="/shop/home" /> : <AuthRegister />
+              isAuthenticated ? (
+                user?.role === "admin" ? <Navigate to="/admin/dashboard" replace /> : <Navigate to="/shop/home" replace />
+              ) : (
+                <AuthRegister />
+              )
             }
           />
         </Route>
 
-        {/* 🔒 Admin Routes (Only for Admins) */}
+        {/* 🔒 Admin Routes (Admins Only) */}
         <Route
           path="/admin/*"
           element={
-            <CheckAuth isAuthenticated={isAuthenticated} user={user} role="admin">
+            <CheckAuth isAuthenticated={isAuthenticated} user={user}>
               <AdminLayout />
             </CheckAuth>
           }

@@ -13,56 +13,52 @@ const shopAddressRouter = require("./routes/Shop/addressRoutes");
 const shopOrderRouter = require("./routes/Shop/orderRoutes");
 const paypalRouter = require("./routes/Shop/paypalRoutes");
 
-// Connect to MongoDB
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// ✅ MongoDB Connection
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch((error) => {
     console.error("❌ MongoDB Connection Error:", error);
-    process.exit(1); // Exit if connection fails
+    process.exit(1); // Exit process on failure
   });
 
-const app = express();
-const PORT = process.env.PORT || 5000;
-
-// Allowed Origins
+// ✅ CORS Middleware
 const allowedOrigins = [
-  "https://e-commercebypraveen.onrender.com", // Deployed Frontend
   "http://localhost:5173", // Local Development
+  "https://ecommerce-shopbypraveen.onrender.com", // Deployed Frontend
 ];
 
-// CORS Middleware
 app.use(
   cors({
-    origin: allowedOrigins,
-    credentials: true, // Allows sending authentication cookies
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cache-Control", "X-Requested-With", "Accept"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cache-Control"],
+    credentials: true,
   })
 );
 
-// Trust Proxy for Render Deployment
-app.set("trust proxy", 1);
-
-// Middleware
-app.use(cookieParser());
+// ✅ Middleware
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // Supports form submissions
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-// Debug Incoming Requests
+// ✅ Debugging Incoming Requests
 app.use((req, res, next) => {
   console.log(`📌 Incoming Request: ${req.method} ${req.url}`);
   console.log("📌 Origin:", req.headers.origin);
-  console.log("📌 Headers:", req.headers);
   next();
 });
 
-// Test Route
-app.get("/", (req, res) => {
-  res.send("<h1>🚀 Server is Running!</h1>");
-});
-
-// Routes
+// ✅ Routes
 app.use("/api/auth", authRouter);
 app.use("/api/admin/products", adminProductsRouter);
 app.use("/api/shop/products", shopProductsRouter);
@@ -71,5 +67,18 @@ app.use("/api/shop/address", shopAddressRouter);
 app.use("/api/shop/orders", shopOrderRouter);
 app.use("/api/shop/paypal", paypalRouter);
 
-// Start Server
-app.listen(PORT, () => console.log(`🚀 Server Running on http://localhost:${PORT}`));
+// ✅ Default Route
+app.get("/", (req, res) => {
+  res.send("<h1>🚀 Server is Running!</h1>");
+});
+
+// ✅ Global Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error("❌ Server Error:", err.message);
+  res.status(500).json({ success: false, message: "Internal Server Error" });
+});
+
+// ✅ Start Server
+app.listen(PORT, () =>
+  console.log(`🚀 Server Running on http://localhost:${PORT}`)
+);

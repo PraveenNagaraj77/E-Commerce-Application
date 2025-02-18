@@ -4,7 +4,7 @@ const User = require("../../models/Users");
 
 // Register
 const registerUser = async (req, res) => {
-    const { userName, email, password } = req.body;
+    const { userName, email, password, role } = req.body;
 
     try {
         const checkUser = await User.findOne({ email });
@@ -19,6 +19,7 @@ const registerUser = async (req, res) => {
             userName,
             email,
             password: hashedPassword,
+            role: role || "user",  // Default role
         });
 
         await newUser.save();
@@ -61,13 +62,13 @@ const loginUser = async (req, res) => {
                 email: checkUser.email,
                 userName: checkUser.userName,
             },
-            process.env.JWT_SECRET, // ✅ Use env variable
+            process.env.JWT_SECRET, 
             { expiresIn: "60m" }
         );
 
-        // ✅ Set secure cookies in production
+        // Set cookies with security settings
         res.cookie("token", token, {
-            httpOnly: true, 
+            httpOnly: true,
             secure: process.env.NODE_ENV === "production", 
             sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
         });
@@ -93,7 +94,11 @@ const loginUser = async (req, res) => {
 
 // Logout
 const logoutUser = (req, res) => {
-    res.clearCookie("token", { sameSite: "None", secure: true }).json({
+    res.clearCookie("token", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", 
+        sameSite: "None",
+    }).json({
         success: true,
         message: "Logged out successfully",
     });
@@ -103,7 +108,7 @@ const logoutUser = (req, res) => {
 const authMiddleWare = async (req, res, next) => {
     const token = req.cookies.token;
     if (!token)
-        return res.json({
+        return res.status(401).json({
             success: false,
             message: "Unauthorized user",
         });
@@ -113,9 +118,10 @@ const authMiddleWare = async (req, res, next) => {
         req.user = decoded;
         next();
     } catch (error) {
+        console.error("JWT Verification Error: ", error);
         res.status(401).json({
             success: false,
-            message: "Unauthorized user",
+            message: "Unauthorized user. Invalid token.",
         });
     }
 };
