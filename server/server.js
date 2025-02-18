@@ -1,4 +1,4 @@
-require("dotenv").config(); // ✅ Load environment variables
+require("dotenv").config(); // Load environment variables
 const express = require("express");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
@@ -17,42 +17,39 @@ const paypalRouter = require("./routes/Shop/paypalRoutes");
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
-  .catch((error) => console.log("❌ MongoDB Connection Error:", error));
+  .catch((error) => {
+    console.error("❌ MongoDB Connection Error:", error);
+    process.exit(1); // Exit if connection fails
+  });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ Allowed Origins
+// Allowed Origins
 const allowedOrigins = [
-  "https://e-commercebypraveen.onrender.com", // ✅ Deployed Frontend
-  "http://localhost:5173", // ✅ Local Development
+  "https://e-commercebypraveen.onrender.com", // Deployed Frontend
+  "http://localhost:5173", // Local Development
 ];
 
-// ✅ CORS Middleware
+// CORS Middleware
 app.use(
   cors({
     origin: allowedOrigins,
-    credentials: true, // ✅ Allows sending authentication cookies
+    credentials: true, // Allows sending authentication cookies
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "Cache-Control",
-      "X-Requested-With",
-      "Accept",
-    ],
+    allowedHeaders: ["Content-Type", "Authorization", "Cache-Control", "X-Requested-With", "Accept"],
   })
 );
 
-// ✅ Trust Proxy (Required for Render Deployment)
+// Trust Proxy for Render Deployment
 app.set("trust proxy", 1);
 
-// ✅ Middleware
+// Middleware
 app.use(cookieParser());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // ✅ Supports form submissions
+app.use(express.urlencoded({ extended: true })); // Supports form submissions
 
-// ✅ Debug Incoming Requests
+// Debug Incoming Requests
 app.use((req, res, next) => {
   console.log(`📌 Incoming Request: ${req.method} ${req.url}`);
   console.log("📌 Origin:", req.headers.origin);
@@ -60,12 +57,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ Test Route
+// Test Route
 app.get("/", (req, res) => {
   res.send("<h1>🚀 Server is Running!</h1>");
 });
 
-// ✅ Routes
+// Routes
 app.use("/api/auth", authRouter);
 app.use("/api/admin/products", adminProductsRouter);
 app.use("/api/shop/products", shopProductsRouter);
@@ -74,5 +71,5 @@ app.use("/api/shop/address", shopAddressRouter);
 app.use("/api/shop/orders", shopOrderRouter);
 app.use("/api/shop/paypal", paypalRouter);
 
-// ✅ Start Server
+// Start Server
 app.listen(PORT, () => console.log(`🚀 Server Running on http://localhost:${PORT}`));
