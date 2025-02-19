@@ -28,7 +28,7 @@ mongoose
 // ✅ CORS Middleware
 const allowedOrigins = [
   "http://localhost:5173", // Local Development
-  "https://ecommerce-shopbypraveen.onrender.com", // Deployed Frontend
+  "https://e-commercebypraveen.onrender.com", // Deployed Frontend
 ];
 
 app.use(
@@ -41,10 +41,13 @@ app.use(
       }
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cache-Control"],
-    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true, // Allow cookies and authentication headers
   })
 );
+
+// ✅ Handle Preflight Requests for All Routes
+app.options("*", cors());
 
 // ✅ Middleware
 app.use(express.json());
@@ -69,6 +72,7 @@ app.use("/api/shop/paypal", paypalRouter);
 
 // ✅ Default Route
 app.get("/", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*"); // Ensure it works for all origins
   res.send("<h1>🚀 Server is Running!</h1>");
 });
 
