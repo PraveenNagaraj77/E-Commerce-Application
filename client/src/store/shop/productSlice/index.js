@@ -1,67 +1,77 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import axios from 'axios';
 
-// ✅ Fetch the backend URL from environment variable
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL; // Get the base URL from .env
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import axios from "axios";
+
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
 const initialState = {
   isLoading: false,
   productList: [],
   productDetails: null,
-}
+};
 
 export const fetchAllFilterProducts = createAsyncThunk(
   "products/fetchAllProducts",
-  async ({ filterParams, sortParams }, { rejectWithValue }) => {
+  async ({ filterParams = {}, sortParams, search = "" } = {}, { rejectWithValue }) => {
     try {
       const query = new URLSearchParams();
 
-      if (filterParams && typeof filterParams === "object" && Object.keys(filterParams).length > 0) {
-        Object.entries(filterParams).forEach(([key, value]) => {
-          if (value && value.length > 0) {  // Ensure empty filters are not included
-            query.set(key.toLowerCase(), Array.isArray(value) ? value.join(",") : value);
-          }
-        });
+      Object.entries(filterParams).forEach(([key, value]) => {
+        if (Array.isArray(value) && value.length > 0) {
+          query.set(key.toLowerCase(), value.join(","));
+        } else if (typeof value === "string" && value.trim()) {
+          query.set(key.toLowerCase(), value.trim());
+        }
+      });
+
+      if (search.trim()) {
+        query.set("search", search.trim());
       }
 
       if (sortParams) {
         query.set("sortBy", sortParams);
       }
 
-      const queryString = query.toString();
-      const apiUrl = queryString
-        ? `${API_BASE_URL}/api/shop/products/get?${queryString}`
-        : `${API_BASE_URL}/api/shop/products/get`;
+      const response = await axios.get(
+        `${API_BASE_URL}/api/shop/products/get?${query.toString()}`
+      );
 
-      const response = await axios.get(apiUrl);
       return response.data;
+
     } catch (error) {
-      console.error("❌ API Error:", error.response?.data || error.message);
-      return rejectWithValue(error.response?.data || "Failed to fetch products");
+      return rejectWithValue(
+        error.response?.data?.message || "Unable to fetch products"
+      );
     }
   }
 );
 
 export const fetchProductDetails = createAsyncThunk(
   "products/fetchProductDetails",
-  async (id) => {
+  async (id, { rejectWithValue }) => {
     try {
-      const apiUrl = `${API_BASE_URL}/api/shop/products/get/${id}`;
-      const result = await axios.get(apiUrl);
-      return result.data;
+      const response = await axios.get(
+        `${API_BASE_URL}/api/shop/products/get/${id}`
+      );
+
+      return response.data;
+
     } catch (error) {
-      console.error("❌ API Error:", error.response?.data || error.message);
+      return rejectWithValue(
+        error.response?.data?.message || "Unable to fetch product details"
+      );
     }
   }
 );
 
 const shoppingProductSlice = createSlice({
-  name: 'shoppingProducts',
+  name: "shoppingProductSlice",
   initialState,
+
   reducers: {
     setProductDetails: (state) => {
       state.productDetails = null;
-    }
+    },
   },
 
   extraReducers: (builder) => {
@@ -71,7 +81,7 @@ const shoppingProductSlice = createSlice({
       })
       .addCase(fetchAllFilterProducts.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.productList = action.payload.data;
+        state.productList = action.payload.data || [];
       })
       .addCase(fetchAllFilterProducts.rejected, (state) => {
         state.isLoading = false;
@@ -88,7 +98,7 @@ const shoppingProductSlice = createSlice({
         state.isLoading = false;
         state.productDetails = null;
       });
-  }
+  },
 });
 
 export const { setProductDetails } = shoppingProductSlice.actions;

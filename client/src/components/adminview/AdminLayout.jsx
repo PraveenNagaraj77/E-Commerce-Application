@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import AdminSideBar from "./Sidebar";
@@ -7,34 +8,18 @@ const AdminLayout = () => {
   const [openSidebar, setOpenSidebar] = useState(false);
 
   return (
-    <div className="flex min-h-screen w-full">
-      {/* Admin Sidebar - Hidden on small screens and shown on larger screens */}
+    <div className="flex min-h-screen w-full overflow-x-hidden bg-gray-50">
       <AdminSideBar
         open={openSidebar}
         setOpen={setOpenSidebar}
-        className="lg:block hidden" // Hide on small screens, show on larger screens
       />
-      
-      {/* Main Content Area */}
-      <div className="flex flex-1 flex-col transition-all duration-300">
-        {/* Admin Header */}
+
+      <div className="flex min-w-0 flex-1 flex-col">
         <AdminHeader setOpen={setOpenSidebar} />
 
-        {/* Page Content */}
-        <main className="flex flex-col flex-1 bg-gray-100 p-4 sm:p-6">
+        <main className="min-w-0 flex-1 bg-gray-50 p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
-      </div>
-
-      {/* Sidebar toggle on small screens */}
-      <div className="lg:hidden fixed bottom-4 right-4">
-        <button
-          onClick={() => setOpenSidebar(!openSidebar)}
-          className="bg-primary text-white p-2 rounded-full"
-        >
-          {/* Icon for opening/closing the sidebar */}
-          {openSidebar ? 'Close' : 'Open'} Sidebar
-        </button>
       </div>
     </div>
   );

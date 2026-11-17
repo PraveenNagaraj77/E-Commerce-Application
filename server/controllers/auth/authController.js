@@ -2,34 +2,53 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../../models/Users");
 
+const TOKEN_EXPIRY = "7d";
+const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+
+const getCookieOptions = () => {
+    const isProduction = process.env.NODE_ENV === "production";
+
+    return {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "None" : "Lax",
+        path: "/",
+    };
+};
+
 // Register
 const registerUser = async (req, res) => {
     const { userName, email, password, role } = req.body;
 
     try {
         const checkUser = await User.findOne({ email });
-        if (checkUser)
+
+        if (checkUser) {
             return res.json({
                 success: false,
                 message: "User already exists with this email! Please try again",
             });
+        }
 
         const hashedPassword = await bcrypt.hash(password, 12);
+
         const newUser = new User({
             userName,
             email,
             password: hashedPassword,
-            role: role || "user",  // Default role
+            role: role || "user",
         });
 
         await newUser.save();
-        res.status(200).json({
+
+        return res.status(200).json({
             success: true,
             message: "Registration Successful",
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
+        console.error("Registration Error:", error);
+
+        return res.status(500).json({
             success: false,
             message: "An error occurred",
         });
@@ -42,50 +61,60 @@ const loginUser = async (req, res) => {
 
     try {
         const checkUser = await User.findOne({ email });
-        if (!checkUser)
+
+        if (!checkUser) {
             return res.json({
                 success: false,
                 message: "User not found, please register",
             });
+        }
 
-        const checkPasswordMatch = await bcrypt.compare(password, checkUser.password);
-        if (!checkPasswordMatch)
+        const checkPasswordMatch = await bcrypt.compare(
+            password,
+            checkUser.password
+        );
+
+        if (!checkPasswordMatch) {
             return res.json({
                 success: false,
                 message: "Invalid password, please try again",
             });
+        }
+
+        if (!process.env.JWT_SECRET) {
+            throw new Error("JWT_SECRET is not configured");
+        }
 
         const token = jwt.sign(
             {
-                id: checkUser._id,
+                id: checkUser._id.toString(),
                 role: checkUser.role,
                 email: checkUser.email,
                 userName: checkUser.userName,
             },
-            process.env.JWT_SECRET, 
-            { expiresIn: "60m" }
+            process.env.JWT_SECRET,
+            { expiresIn: TOKEN_EXPIRY }
         );
 
-        // Set cookies with security settings
         res.cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production", 
-            sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+            ...getCookieOptions(),
+            maxAge: COOKIE_MAX_AGE,
         });
 
-        res.json({
+        return res.status(200).json({
             success: true,
             message: "Login successful",
             user: {
                 email: checkUser.email,
                 role: checkUser.role,
-                id: checkUser._id,
+                id: checkUser._id.toString(),
                 userName: checkUser.userName,
             },
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
+        console.error("Login Error:", error);
+
+        return res.status(500).json({
             success: false,
             message: "An error occurred",
         });
@@ -94,36 +123,47 @@ const loginUser = async (req, res) => {
 
 // Logout
 const logoutUser = (req, res) => {
-    res.clearCookie("token", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production", 
-        sameSite: "None",
-    }).json({
+    res.clearCookie("token", getCookieOptions());
+
+    return res.status(200).json({
         success: true,
         message: "Logged out successfully",
     });
 };
 
-// Auth Middleware
-const authMiddleWare = async (req, res, next) => {
-    const token = req.cookies.token;
-    if (!token)
+// Authentication Middleware
+const authMiddleWare = (req, res, next) => {
+    const token = req.cookies?.token;
+
+    if (!token) {
         return res.status(401).json({
             success: false,
             message: "Unauthorized user",
         });
+    }
 
     try {
+        if (!process.env.JWT_SECRET) {
+            throw new Error("JWT_SECRET is not configured");
+        }
+
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded;
-        next();
+
+        return next();
     } catch (error) {
-        console.error("JWT Verification Error: ", error);
-        res.status(401).json({
+        console.error("JWT Verification Error:", error.message);
+
+        return res.status(401).json({
             success: false,
-            message: "Unauthorized user. Invalid token.",
+            message: "Unauthorized user. Invalid or expired token.",
         });
     }
 };
 
-module.exports = { registerUser, loginUser, logoutUser, authMiddleWare };
+module.exports = {
+    registerUser,
+    loginUser,
+    logoutUser,
+    authMiddleWare,
+};

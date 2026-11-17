@@ -40,16 +40,26 @@ export const logoutUser = createAsyncThunk('/auth/logout',
     }
 );
 
-export const checkAuth = createAsyncThunk('/auth/checkauth',
-    async () => {
-        const response = await axios.get(`${BACKEND_URL}/api/auth/checkauth`, {
-            withCredentials: true,
-            headers: {
-                'Cache-Control': 'no-store,no-cache,must-revalidate,proxy-revalidate',
-            }
-        });
+export const checkAuth = createAsyncThunk(
+    '/auth/checkauth',
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = await axios.get(
+                `${BACKEND_URL}/api/auth/checkauth`,
+                {
+                    withCredentials: true,
+                    headers: {
+                        "Cache-Control": "no-cache",
+                    },
+                }
+            );
 
-        return response.data;
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(
+                error.response?.data?.message || "Authentication check failed"
+            );
+        }
     }
 );
 
