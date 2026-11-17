@@ -1,8 +1,14 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import axios from 'axios';
 
-// ✅ Fetch the backend URL from environment variable
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL; // Read the base URL from .env
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import axios from "axios";
+
+const API_BASE_URL = (import.meta.env.VITE_BACKEND_URL || "").replace(/\/$/, "");
+
+const CART_API = `${API_BASE_URL}/api/shop/cart`;
+
+const axiosConfig = {
+  withCredentials: true,
+};
 
 const initialState = {
   isLoading: false,
@@ -10,86 +16,128 @@ const initialState = {
   error: null,
 };
 
-// 🛒 Fetch Cart Items
+// Fetch authenticated user's cart
 export const fetchCart = createAsyncThunk(
   "cart/fetchCart",
   async (userId, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/shop/cart/get/${userId}`); // Add `/api/shop/cart/get/` to the base URL
-      return response.data.data?.items || []; // Ensure it returns an array
+      const response = await axios.get(
+        `${CART_API}/get/${userId}`,
+        axiosConfig
+      );
+
+      return response.data.data?.items || [];
     } catch (error) {
       console.error("Fetch Cart Error:", error.response?.data || error.message);
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch cart");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch cart"
+      );
     }
   }
 );
 
-// ➕ Add Item to Cart
+// Add product to cart
 export const addToCart = createAsyncThunk(
   "cart/addToCart",
   async ({ userId, productId, quantity }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/shop/cart/add`, { userId, productId, quantity }); // Add `/api/shop/cart/add`
-      return response.data.data?.items || []; // Ensure it returns an array
+      const response = await axios.post(
+        `${CART_API}/add`,
+        { userId, productId, quantity },
+        axiosConfig
+      );
+
+      return response.data.data?.items || [];
     } catch (error) {
       console.error("Add to Cart Error:", error.response?.data || error.message);
-      return rejectWithValue(error.response?.data?.message || "Failed to add product to cart");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to add product to cart"
+      );
     }
   }
 );
 
-// ✏️ Update Cart Item Quantity
+// Update cart item quantity
 export const updateCartItemQuantity = createAsyncThunk(
   "cart/updateCartItemQuantity",
   async ({ userId, productId, quantity }, { rejectWithValue }) => {
     try {
-      if (!userId || !productId || quantity === undefined) {
-        return rejectWithValue("Missing required fields: userId, productId, or quantity");
+      if (!productId || !Number.isInteger(quantity) || quantity < 1) {
+        return rejectWithValue("Invalid product ID or quantity");
       }
-      const response = await axios.put(`${API_BASE_URL}/api/shop/cart/updatecart`, { userId, productId, quantity }); // Add `/api/shop/cart/updatecart`
-      return response.data.data?.items || []; // Ensure it returns an array
+
+      const response = await axios.put(
+        `${CART_API}/updatecart`,
+        { userId, productId, quantity },
+        axiosConfig
+      );
+
+      return response.data.data?.items || [];
     } catch (error) {
       console.error("Update Cart Error:", error.response?.data || error.message);
-      return rejectWithValue(error.response?.data?.message || "Failed to update cart item");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update cart item"
+      );
     }
   }
 );
 
-// ❌ Delete a Cart Item
+// Delete individual cart item
 export const deleteCartItem = createAsyncThunk(
   "cart/deleteCartItem",
   async ({ userId, productId }, { rejectWithValue }) => {
     try {
-      await axios.delete(`${API_BASE_URL}/api/shop/cart/${userId}/${productId}`); // Add `/api/shop/cart/{userId}/{productId}`
-      return productId; // Return productId for filtering in reducer
+      if (!productId) {
+        return rejectWithValue("Product ID is required");
+      }
+
+      const response = await axios.delete(
+        `${CART_API}/${userId}/${productId}`,
+        axiosConfig
+      );
+
+      return response.data.data?.items || [];
     } catch (error) {
-      console.error("Delete Cart Error:", error.response?.data || error.message);
-      return rejectWithValue(error.response?.data?.message || "Failed to delete cart item");
+      console.error("Delete Cart Item Error:", error.response?.data || error.message);
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to delete cart item"
+      );
     }
   }
 );
 
-// 🗑️ Clear Cart (Syncs with Backend)
+// Clear authenticated user's cart
 export const clearCart = createAsyncThunk(
   "cart/clearCart",
   async (userId, { rejectWithValue }) => {
     try {
-      await axios.delete(`${API_BASE_URL}/api/shop/cart/clear/${userId}`); // Add `/api/shop/cart/clear/{userId}`
-      return [];
+      const response = await axios.delete(
+        `${CART_API}/clear/${userId}`,
+        axiosConfig
+      );
+
+      return response.data.data?.items || [];
     } catch (error) {
       console.error("Clear Cart Error:", error.response?.data || error.message);
-      return rejectWithValue(error.response?.data?.message || "Failed to clear cart");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to clear cart"
+      );
     }
   }
 );
 
 const shoppingCartSlice = createSlice({
-  name: 'shoppingCart',
+  name: "shoppingCart",
   initialState,
-  reducers: {},
+ reducers: {
+  resetCartState: (state) => {
+    state.cartItems = [];
+    state.error = null;
+    state.isLoading = false;
+  },
+},
   extraReducers: (builder) => {
     builder
-      // 🔄 Fetch Cart Items
       .addCase(fetchCart.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -103,7 +151,6 @@ const shoppingCartSlice = createSlice({
         state.error = action.payload;
       })
 
-      // ➕ Add to Cart
       .addCase(addToCart.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -117,7 +164,6 @@ const shoppingCartSlice = createSlice({
         state.error = action.payload;
       })
 
-      // ✏️ Update Cart Quantity
       .addCase(updateCartItemQuantity.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -131,30 +177,26 @@ const shoppingCartSlice = createSlice({
         state.error = action.payload;
       })
 
-      // ❌ Delete Cart Item
       .addCase(deleteCartItem.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
       .addCase(deleteCartItem.fulfilled, (state, action) => {
         state.isLoading = false;
-        if (action.payload) {
-          state.cartItems = state.cartItems.filter(item => item.productId !== action.payload);
-        }
+        state.cartItems = action.payload;
       })
       .addCase(deleteCartItem.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       })
 
-      // 🗑️ Clear Cart
       .addCase(clearCart.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(clearCart.fulfilled, (state) => {
+      .addCase(clearCart.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.cartItems = [];
+        state.cartItems = action.payload;
       })
       .addCase(clearCart.rejected, (state, action) => {
         state.isLoading = false;
@@ -163,5 +205,6 @@ const shoppingCartSlice = createSlice({
   },
 });
 
-// Export Reducer
+
+export const { resetCartState } = shoppingCartSlice.actions;
 export default shoppingCartSlice.reducer;

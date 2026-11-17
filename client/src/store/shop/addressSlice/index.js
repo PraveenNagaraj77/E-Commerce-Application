@@ -148,5 +148,5 @@ const addressSlice = createSlice({
 });
 
 // ✅ Export Reducers and Actions
-export const { setSelectedAddress } = addressSlice.actions;
+export const { setSelectedAddress, clearSelectedAddress } = addressSlice.actions;
 export default addressSlice.reducer;

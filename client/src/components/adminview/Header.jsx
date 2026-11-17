@@ -1,40 +1,44 @@
+
 import React from "react";
-import { Button } from "../ui/button";
 import { AlignJustify, LogOut } from "lucide-react";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom"; // 🔹 Import for navigation
+import { useNavigate } from "react-router-dom";
+import { Button } from "../ui/button";
 import { logoutUser } from "@/store/authslice";
 
 const AdminHeader = ({ setOpen }) => {
   const dispatch = useDispatch();
-  const navigate = useNavigate(); // 🔹 Initialize navigate
+  const navigate = useNavigate();
 
   function handleLogout() {
     dispatch(logoutUser());
-    localStorage.removeItem("token"); 
-    sessionStorage.clear(); 
+    localStorage.removeItem("token");
+    sessionStorage.clear();
     navigate("/", { replace: true });
   }
 
   return (
-    <header className="flex items-center justify-between px-4 py-3 bg-background border-b">
-      {/* Menu Toggle Button for Small Screens */}
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6">
       <Button
+        type="button"
+        variant="outline"
+        size="icon"
         onClick={() => setOpen(true)}
-        className="lg:hidden sm:block" // Show on small screens and hide on larger screens
+        className="lg:hidden"
+        aria-label="Open admin navigation"
       >
-        <AlignJustify />
-        <span className="sr-only">Toggle Menu</span>
+        <AlignJustify size={20} />
       </Button>
 
-      <div className="flex flex-1 justify-end">
-        {/* Logout Button */}
+      <div className="ml-auto">
         <Button
+          type="button"
+          variant="outline"
           onClick={handleLogout}
-          className="inline-flex gap-2 items-center rounded-md px-4 py-2 text-sm font-medium shadow"
+          className="inline-flex items-center gap-2 rounded-lg"
         >
-          <LogOut />
-          Logout
+          <LogOut size={17} />
+          <span>Logout</span>
         </Button>
       </div>
     </header>

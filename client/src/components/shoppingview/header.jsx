@@ -1,17 +1,26 @@
+
+import React, { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+
 import {
+  ArrowRight,
   HousePlug,
   LogOut,
   Menu,
   ShoppingCart,
   UserCog,
   List,
+  X,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "../ui/sheet";
-import { Button } from "../ui/button";
-import { useDispatch, useSelector } from "react-redux";
+
 import { shoppingViewHeaderMenuItems } from "@/config";
+import { logoutUser } from "@/store/authslice";
+import { fetchCart, resetCartState } from "@/store/shop/cartSlice";
+
+import { Button } from "../ui/button";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "../ui/sheet";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,178 +31,315 @@ import {
 } from "../ui/dropdown-menu";
 
 import { Avatar, AvatarFallback } from "../ui/avatar";
-import { logoutUser } from "@/store/authslice";
 import UsercartWrapper from "./cartWrapper";
-import { fetchCart } from "@/store/shop/cartSlice";
-import { Label } from "../ui/label";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
-function MenuItems() {
+// Navigation links shared by desktop and mobile.
+function MenuItems({ onNavigate, mobile = false }) {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  function handleNavigate(getCurrentMenuItem) {
-    console.log("Navigating with menu item:", getCurrentMenuItem);
-
+  function handleNavigate(menuItem) {
     sessionStorage.removeItem("Filters");
 
     let queryParams = "";
 
-    if (getCurrentMenuItem.value !== "home") {
-      const currentFilter = { category: [getCurrentMenuItem.id] };
-      sessionStorage.setItem("Filters", JSON.stringify(currentFilter));
-      console.log("Updated sessionStorage:", sessionStorage.getItem("Filters"));
+    if (menuItem.id !== "home") {
+      const currentFilter = {
+        category: [menuItem.id],
+      };
 
-      // Construct query params
-      queryParams = `?category=${getCurrentMenuItem.id}`;
+      sessionStorage.setItem("Filters", JSON.stringify(currentFilter));
+      queryParams = `?category=${menuItem.id}`;
     }
 
-    console.log("Navigating to:", getCurrentMenuItem.path + queryParams);
-    navigate(getCurrentMenuItem.path + queryParams);
+    navigate(menuItem.path + queryParams);
+    onNavigate?.();
   }
 
   return (
-    <nav className="flex flex-col mb-3 lg:mb-0 lg:items-center gap-6 lg:flex-row">
-      {shoppingViewHeaderMenuItems.map((menuItem) => (
-        <Label
-          onClick={() => handleNavigate(menuItem)}
-          key={menuItem.id || menuItem.label}
-          className="text-sm font-medium cursor-pointer hover:text-primary transition"
-        >
-          {menuItem.label}
-        </Label>
-      ))}
+    <nav
+      aria-label="Main navigation"
+      className={
+        mobile
+          ? "flex flex-col gap-2"
+          : "flex items-center gap-6 xl:gap-8"
+      }
+    >
+      {shoppingViewHeaderMenuItems.map((menuItem) => {
+        const isActive =
+          menuItem.id === "home"
+            ? location.pathname === "/shop/home"
+            : location.pathname === "/shop/listing" &&
+              new URLSearchParams(location.search).get("category") ===
+                menuItem.id;
+
+        return (
+          <button
+            key={menuItem.id}
+            type="button"
+            onClick={() => handleNavigate(menuItem)}
+            aria-current={isActive ? "page" : undefined}
+            className={`text-left text-sm font-medium transition-colors ${
+              mobile
+                ? "rounded-lg px-4 py-3 hover:bg-gray-100"
+                : "relative py-6 hover:text-black"
+            } ${
+              isActive
+                ? "text-black"
+                : "text-gray-500"
+            }`}
+          >
+            {menuItem.label}
+
+            {!mobile && isActive && (
+              <span className="absolute bottom-0 left-0 h-0.5 w-full rounded-full bg-black" />
+            )}
+
+            {mobile && (
+              <ArrowRight className="ml-2 inline h-3.5 w-3.5" />
+            )}
+          </button>
+        );
+      })}
     </nav>
   );
 }
 
 function HeaderRightContent() {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const { cartItems = [] } = useSelector((state) => state.cart);
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [openCart, setOpenCart] = useState(false);
-  const { cartItems } = useSelector((state) => state.cart);
 
-  function handleLogout() {
-    dispatch(logoutUser());
+  const [openCart, setOpenCart] = useState(false);
+
+  const totalCartItems = cartItems.reduce(
+    (total, item) => total + (Number(item.quantity) || 0),
+    0
+  );
+
+  async function handleLogout() {
+    try {
+      await dispatch(logoutUser()).unwrap();
+
+      // Clear only the local Redux cart state.
+      // The user's saved cart in the database is not deleted.
+      dispatch(resetCartState());
+
+      setOpenCart(false);
+      navigate("/auth/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   }
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      dispatch(fetchCart(user?.id));
-    }
-  }, [dispatch, isAuthenticated]);
-
   return (
-    <div className="flex lg:items-center lg:flex-row flex-col gap-4">
-      {/* Cart Icon with Badge */}
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() =>
-          isAuthenticated ? setOpenCart(true) : navigate("/auth/login")
-        }
-        className="relative"
-      >
-        <ShoppingCart className="h-6 w-6" />
-        {cartItems.length > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5">
-            {cartItems.length}
-          </span>
+    <>
+      <div className="flex items-center gap-3 sm:gap-4">
+
+        {/* Shopping cart */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() =>
+            isAuthenticated
+              ? setOpenCart(true)
+              : navigate("/auth/login")
+          }
+          className="relative h-10 w-10 rounded-full text-gray-700 hover:bg-gray-100 hover:text-black"
+          aria-label={`Open shopping cart${totalCartItems ? `, ${totalCartItems} items` : ""}`}
+        >
+          <ShoppingCart className="h-5 w-5" />
+
+          {totalCartItems > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-black px-1 text-[10px] font-bold text-white">
+              {totalCartItems > 99 ? "99+" : totalCartItems}
+            </span>
+          )}
+        </Button>
+
+        {/* Account menu */}
+        {isAuthenticated ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="Open account menu"
+                className="rounded-full outline-none ring-offset-2 transition focus-visible:ring-2 focus-visible:ring-gray-400"
+              >
+                <Avatar className="h-9 w-9 cursor-pointer border border-gray-200">
+                  <AvatarFallback className="bg-gray-900 text-sm font-semibold text-white">
+                    {user?.userName
+                      ? user.userName.charAt(0).toUpperCase()
+                      : "U"}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent
+              align="end"
+              side="bottom"
+              className="mt-2 w-60 rounded-xl p-2"
+            >
+              <DropdownMenuLabel className="px-3 py-2">
+                <p className="text-xs font-normal text-gray-500">
+                  Logged in as
+                </p>
+                <p className="mt-1 truncate text-sm font-semibold text-gray-900">
+                  {user?.userName || "Guest"}
+                </p>
+              </DropdownMenuLabel>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem
+                onClick={() => navigate("/shop/account")}
+                className="cursor-pointer rounded-lg px-3 py-2"
+              >
+                <UserCog className="mr-3 h-4 w-4" />
+                My Account
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                onClick={() => navigate("/shop/myorders")}
+                className="cursor-pointer rounded-lg px-3 py-2"
+              >
+                <List className="mr-3 h-4 w-4" />
+                My Orders
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="cursor-pointer rounded-lg px-3 py-2 text-red-600 focus:text-red-600"
+              >
+                <LogOut className="mr-3 h-4 w-4" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Button
+            type="button"
+            onClick={() => navigate("/auth/login")}
+            className="h-10 rounded-full bg-gray-900 px-5 text-sm font-semibold text-white hover:bg-gray-700"
+          >
+            Login
+          </Button>
         )}
-        <span className="sr-only">User Cart</span>
-      </Button>
+      </div>
 
-      {isAuthenticated ? (
-        // User Dropdown when authenticated
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Avatar className="bg-black">
-              <AvatarFallback className="bg-black cursor-pointer  text-white font-extrabold">
-                {user?.userName ? user.userName[0].toUpperCase() : "?"}
-              </AvatarFallback>
-            </Avatar>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" className="w-56">
-            <DropdownMenuLabel>
-              Logged in as {user?.userName || "Guest"}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/shop/account")}>
-              <UserCog className="mr-2 h-4 w-4" />
-              Account
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/shop/myorders")}>
-              <List className="mr-2 h-4 w-4" />
-              My Orders
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : (
-        // Login Button when not authenticated
-        <Button onClick={() => navigate("/auth/login")}>Login</Button>
-      )}
-
-      {/* Cart Modal */}
+      {/* Cart drawer */}
       <Sheet open={openCart} onOpenChange={setOpenCart}>
-        <SheetContent aria-describedby="cart-description">
-          {/* ✅ Hidden Title for Accessibility */}
-          <VisuallyHidden>
-            <SheetTitle>Shopping Cart</SheetTitle>
-          </VisuallyHidden>
-
-          {/* ✅ Add Description to Fix `aria-describedby` Warning */}
-          <p id="cart-description" className="sr-only">
-            This is your shopping cart. Review and manage your selected items.
-          </p>
-
+        <SheetContent
+          side="right"
+          className="w-full max-w-full p-0 sm:max-w-lg"
+        >
           <UsercartWrapper
             cartItems={cartItems}
             onClose={() => setOpenCart(false)}
           />
         </SheetContent>
       </Sheet>
-    </div>
+    </>
   );
 }
 
 const ShoppingHeader = () => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
-  console.log(user, "user");
+  const dispatch = useDispatch();
+
+  const [openMobileMenu, setOpenMobileMenu] = useState(false);
+
+  // Load the authenticated user's cart.
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      dispatch(fetchCart(user.id));
+    } else if (!isAuthenticated) {
+      dispatch(resetCartState());
+    }
+  }, [dispatch, isAuthenticated, user?.id]);
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background">
-      <div className="flex h-16 items-center  justify-between px-4 md:px-6">
-        <Link to={"/shop/home"} className="flex items-center gap-2">
-          <HousePlug className="h-6 w-6" />
-          <span className="font-bold">E-Commerce</span>
+    <header className="sticky top-0 z-40 w-full border-b border-gray-100 bg-white/95 shadow-sm backdrop-blur-md">
+      <div className="mx-auto flex h-[68px] max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-6 lg:h-[76px] lg:px-8">
+
+        {/* Brand */}
+        <Link
+          to="/shop/home"
+          onClick={() => {
+            sessionStorage.removeItem("Filters");
+            setOpenMobileMenu(false);
+          }}
+          className="flex shrink-0 items-center gap-2.5"
+        >
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-900 text-white">
+            <HousePlug className="h-5 w-5" />
+          </div>
+
+          <span className="text-lg font-bold tracking-tight text-gray-900 sm:text-xl">
+            E-Commerce
+          </span>
         </Link>
 
-        {/* Mobile Menu */}
-        <Sheet modal={false}>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="lg:hidden">
-              <Menu className="h-6 w-6" />
-              <span className="sr-only">Toggle Header Menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-full max-w-xs">
-            <SheetTitle className="mb-4"></SheetTitle> {/* Added spacing */}
-            <MenuItems />
-            <HeaderRightContent />
-          </SheetContent>
-        </Sheet>
-
-        {/* Desktop Menu */}
-        <div className="hidden lg:block">
+        {/* Desktop navigation */}
+        <div className="hidden flex-1 justify-center lg:flex">
           <MenuItems />
         </div>
-        <div className="hidden lg:block">
+
+        {/* Header actions: visible on desktop and mobile */}
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <HeaderRightContent />
+
+          {/* Mobile navigation drawer */}
+          <Sheet open={openMobileMenu} onOpenChange={setOpenMobileMenu}>
+            <SheetTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                aria-label="Open navigation menu"
+                className="h-10 w-10 rounded-full border-gray-200 lg:hidden"
+              >
+                {openMobileMenu ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
+              </Button>
+            </SheetTrigger>
+
+            <SheetContent
+              side="left"
+              className="w-[85%] max-w-sm border-r border-gray-100 bg-white p-0"
+            >
+              <div className="border-b border-gray-100 px-6 py-6">
+                <SheetTitle className="text-left text-lg font-bold">
+                  Browse Categories
+                </SheetTitle>
+                <p className="mt-1 text-sm text-gray-500">
+                  Find what you're looking for.
+                </p>
+              </div>
+
+              <div className="px-4 py-5">
+                <MenuItems
+                  mobile
+                  onNavigate={() => setOpenMobileMenu(false)}
+                />
+              </div>
+
+              <div className="mt-auto border-t border-gray-100 px-6 py-5">
+                <p className="text-xs text-gray-400">
+                  Discover your everyday essentials.
+                </p>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </header>

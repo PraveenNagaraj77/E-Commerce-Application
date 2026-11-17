@@ -1,86 +1,124 @@
-const Product = require('../../models/Product');
+
+const Product = require("../../models/Product");
 
 const getFilterProducts = async (req, res) => {
     try {
-        let { category, brand, sortBy = "price-lowtohigh" } = req.query;
-        let filterQuery = {};
+        const {
+            category,
+            brand,
+            search,
+            sortBy = "price-lowtohigh",
+        } = req.query;
 
-        // Apply category filter only if it exists
-        if (category && category.trim().length > 0) {
-            filterQuery.category = { $in: category.split(",").map(cat => cat.trim().toLowerCase()) };
+        const filterQuery = {};
+
+        // Category filter
+        if (category && category.trim()) {
+            filterQuery.category = {
+                $in: category
+                    .split(",")
+                    .map((item) => item.trim().toLowerCase())
+                    .filter(Boolean),
+            };
         }
 
-        if (brand && brand.trim().length > 0) {
-            filterQuery.brand = { $in: brand.split(",").map(br => br.trim().toLowerCase()) };
+        // Brand filter
+        if (brand && brand.trim()) {
+            filterQuery.brand = {
+                $in: brand
+                    .split(",")
+                    .map((item) => item.trim().toLowerCase())
+                    .filter(Boolean),
+            };
         }
 
-        // Sorting logic
+        // Search across title, description, brand and category
+        if (search && search.trim()) {
+            const escapedSearch = search.trim().replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+            );
+
+            const searchRegex = new RegExp(escapedSearch, "i");
+
+            filterQuery.$or = [
+                { title: searchRegex },
+                { description: searchRegex },
+                { brand: searchRegex },
+                { category: searchRegex },
+            ];
+        }
+
+        // Sorting
         let sortQuery = {};
+
         switch (sortBy) {
             case "price-lowtohigh":
                 sortQuery.price = 1;
                 break;
+
             case "price-hightolow":
                 sortQuery.price = -1;
                 break;
+
             case "title-atoz":
                 sortQuery.title = 1;
                 break;
+
             case "title-ztoa":
                 sortQuery.title = -1;
                 break;
+
             default:
                 sortQuery.price = 1;
         }
 
-        console.log("🔍 Final Filter Query:", JSON.stringify(filterQuery, null, 2));
-        console.log("🔍 Final Sort Query:", JSON.stringify(sortQuery, null, 2));
+        const products = await Product.find(filterQuery).sort(sortQuery);
 
-        // Fetch all products if no filters are applied
-        const products = Object.keys(filterQuery).length === 0 
-            ? await Product.find().sort(sortQuery) 
-            : await Product.find(filterQuery).sort(sortQuery);
-
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
-            data: products
+            data: products,
         });
 
     } catch (error) {
-        console.error("❌ Error in getFilterProducts:", error);
-        res.status(500).json({
+        console.error("Error fetching products:", error);
+
+        return res.status(500).json({
             success: false,
-            message: "An error occurred while fetching products"
+            message: "An error occurred while fetching products",
         });
     }
 };
 
-
-
-const getProductDetails=async(req,res)=>{
+const getProductDetails = async (req, res) => {
     try {
+        const { id } = req.params;
 
-        const {id} = req.params;
         const product = await Product.findById(id);
 
-        if(!product) return res.status(404).json({
-            success:false,
-            message:"Product not found"
-        })
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: "Product not found",
+            });
+        }
 
-        res.status(200).json({
-            success:true,
-            data : product
-        })
-        
+        return res.status(200).json({
+            success: true,
+            data: product,
+        });
+
     } catch (error) {
-        res.status(500).json({
+        console.error("Error fetching product details:", error);
+
+        return res.status(500).json({
             success: false,
-            message: "An error occurred while fetching products"
+            message: "An error occurred while fetching product details",
         });
     }
-}
+};
 
-module.exports = { getFilterProducts , getProductDetails };
-
-
+module.exports = {
+    getFilterProducts,
+    getProductDetails,
+};

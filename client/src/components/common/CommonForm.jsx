@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Input } from "../ui/input";
 import {
@@ -19,22 +20,21 @@ const CommonForm = ({
   setFormData,
   onSubmit,
   buttonText,
-  isBtnDisabled
+  isBtnDisabled = false,
 }) => {
   function renderInputsByComponentType(getControlItem) {
-    let element = null;
-
     const value = formData[getControlItem.name] || "";
 
     switch (getControlItem.componentType) {
       case "input":
-        element = (
+        return (
           <Input
             name={getControlItem.name}
             placeholder={getControlItem.placeholder}
             id={getControlItem.name}
             type={getControlItem.type}
             value={value}
+            disabled={isBtnDisabled}
             onChange={(event) =>
               setFormData({
                 ...formData,
@@ -43,39 +43,31 @@ const CommonForm = ({
             }
           />
         );
-        break;
 
       case "select":
-        element = (
+        return (
           <Select
-            onValueChange={(selectedValue) => {
-              console.log("Selected Value:", selectedValue); // Debugging
+            value={value}
+            disabled={isBtnDisabled}
+            onValueChange={(selectedValue) =>
               setFormData({
                 ...formData,
                 [getControlItem.name]: selectedValue,
-              });
-            }}
-            value={formData[getControlItem.name] || ""} // Ensure the selected value is passed here
+              })
+            }
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder={getControlItem.placeholder}>
-                {
-                  // Find the label based on the selected value
-                  getControlItem.options?.find(
-                    (option) =>
-                      option.value === formData[getControlItem.name] ||
-                      option.id === formData[getControlItem.name]
-                  )?.label
-                }
-              </SelectValue>
+              <SelectValue placeholder={getControlItem.placeholder} />
             </SelectTrigger>
+
             <SelectContent>
               <SelectGroup>
                 <SelectLabel>{getControlItem.label}</SelectLabel>
+
                 {getControlItem.options?.map((optionItem, index) => (
                   <SelectItem
-                    key={`${optionItem.value || index}-${optionItem.label}`}
-                    value={optionItem.value || optionItem.id} // Ensure value or id is correctly passed
+                    key={`${optionItem.value || optionItem.id || index}-${optionItem.label}`}
+                    value={optionItem.value || optionItem.id}
                   >
                     {optionItem.label}
                   </SelectItem>
@@ -84,15 +76,15 @@ const CommonForm = ({
             </SelectContent>
           </Select>
         );
-        break;
 
       case "textarea":
-        element = (
+        return (
           <Textarea
             name={getControlItem.name}
             placeholder={getControlItem.placeholder}
             id={getControlItem.name}
             value={value}
+            disabled={isBtnDisabled}
             onChange={(event) =>
               setFormData({
                 ...formData,
@@ -101,15 +93,16 @@ const CommonForm = ({
             }
           />
         );
-        break;
 
       default:
-        element = (
+        return (
           <Input
             name={getControlItem.name}
             placeholder={getControlItem.placeholder}
             id={getControlItem.name}
             type={getControlItem.type}
+            value={value}
+            disabled={isBtnDisabled}
             onChange={(event) =>
               setFormData({
                 ...formData,
@@ -118,10 +111,7 @@ const CommonForm = ({
             }
           />
         );
-        break;
     }
-
-    return element;
   }
 
   return (
@@ -129,12 +119,20 @@ const CommonForm = ({
       <div className="flex flex-col gap-3">
         {formControls.map((controlItem) => (
           <div className="grid w-full gap-1.5" key={controlItem.name}>
-            <Label className="mb-1">{controlItem.label}</Label>
+            <Label htmlFor={controlItem.name} className="mb-1">
+              {controlItem.label}
+            </Label>
+
             {renderInputsByComponentType(controlItem)}
           </div>
         ))}
       </div>
-      <Button disabled={isBtnDisabled} type="submit" className="mt-2 w-full">
+
+      <Button
+        disabled={isBtnDisabled}
+        type="submit"
+        className="mt-2 w-full"
+      >
         {buttonText || "Submit"}
       </Button>
     </form>
